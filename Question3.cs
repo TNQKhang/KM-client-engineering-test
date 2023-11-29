@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-// Time spent : 2h30'
+// Time spent : 3h00'
 public class Question3
 {
     public struct Point
@@ -20,71 +20,69 @@ public class Question3
 
     public static Point[] OptimizeMesh(Point[] mesh, float epsilon)
     {
-        List<List<Point>> pointsGroup = new();
+        List<List<int>> pointIndexesGroup = new();
 
         for (int i = 0; i < mesh.Length; i++)
         {
-            List<int> groupIndexes = new();
             Point currPoint = mesh[i];
 
-            // The idea is to put points that are close together into lists.
-            // For every point, traverse through those list,
-            for (int groupIndex = 0; groupIndex < pointsGroup.Count; groupIndex++)
+            // The idea is to put indexes of points that are close together into lists.
+            // For every point, traverse through those list.
+            bool IsApproxEqual = false;
+
+            foreach (var pointIndexes in pointIndexesGroup)
             {
-                foreach (var point in pointsGroup[groupIndex])
+                IsApproxEqual = true;
+
+                foreach (var pointIndex in pointIndexes)
                 {
-                    if (currPoint.ApproxEquals(point, epsilon))
+                    Point point = mesh[pointIndex];
+
+                    if (!currPoint.ApproxEquals(point, epsilon))
                     {
-                        groupIndexes.Add(groupIndex);
+                        IsApproxEqual = false;
+
                         break;
                     }
                 }
-            }
 
-            // If current point belongs only to one list, add that point to the list.
-            if (groupIndexes.Count == 1)
-            {
-                pointsGroup[groupIndexes[0]].Add(currPoint);
-            }
-            // If current point belongs to multiple lists, merge those lists together, then add the point the the merged list.
-            // This is account for points that are not close to each other, but have the same point that are close to them.
-            else if (groupIndexes.Count > 1)
-            {
-                List<Point> beginPoints = pointsGroup[groupIndexes[0]];
-                for (int groupIndex = groupIndexes.Count - 1; groupIndex >= 1; groupIndex--)
+                // If the point is approximately equal to every other point in the list
+                // Add the point to the list, 
+                if (IsApproxEqual)
                 {
-                    int pointIndex = groupIndexes[groupIndex];
-                    List<Point> groupToAdd = pointsGroup[pointIndex];
-                    beginPoints.AddRange(groupToAdd);
-                    pointsGroup.RemoveAt(pointIndex);
-                }
+                    pointIndexes.Add(i);
 
-                beginPoints.Add(currPoint);
+                    // We only need to put it into one list, 
+                    // as put it into multiple list won't reduce the points count further.
+                    // Eg. if points 1,2,3 are equals and points 3,4,5 are equals, but not 1,2 and 4,5
+                    // Then we only need to collapse 1,2,3 or 3,4,5, then collapse 4,5 or 1,2.
+                    break;
+                }
             }
-            // Add a new list if it doesn't belong to any
-            else
-            {
-                pointsGroup.Add(new List<Point> { currPoint });
-            }
+
+            // If it doesn't belong in any list, add a new list
+            if (!IsApproxEqual)
+                pointIndexesGroup.Add(new List<int> { i });
         }
 
-        // Calculate average points
+        // Calculate the average points
         List<Point> newMesh = new();
         Point averagePoint;
 
-        foreach (var points in pointsGroup)
+        foreach (var pointIndexes in pointIndexesGroup)
         {
             averagePoint.x = averagePoint.y = averagePoint.z = 0;
-            foreach (var point in points)
+
+            foreach (var pointIndex in pointIndexes)
             {
-                averagePoint.x += point.x;
-                averagePoint.y += point.y;
-                averagePoint.z += point.z;
+                averagePoint.x += mesh[pointIndex].x;
+                averagePoint.y += mesh[pointIndex].y;
+                averagePoint.z += mesh[pointIndex].z;
             }
 
-            averagePoint.x /= points.Count;
-            averagePoint.y /= points.Count;
-            averagePoint.z /= points.Count;
+            averagePoint.x /= pointIndexes.Count;
+            averagePoint.y /= pointIndexes.Count;
+            averagePoint.z /= pointIndexes.Count;
 
             newMesh.Add(averagePoint);
         }
